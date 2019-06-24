@@ -26,7 +26,7 @@ void SessionDelegate::captureSessionDidOutputSample(ST::CaptureSession *, const 
     // Depth/visible/infrared frames can arrive individually or as part of a SynchronizedFrames sample
     if (sample.depthFrame.isValid())
     {
-        _lastDepthFrame = sample.depthFrame;
+        _lastDepthFrame = sample.depthFrame;     
     }
     if (sample.visibleFrame.isValid())
     {
@@ -87,10 +87,11 @@ StructureCamera::StructureCamera()
 {
     _settings.source = ST::CaptureSessionSourceId::StructureCore;
     _settings.structureCore.depthEnabled = true;
-    _settings.structureCore.visibleEnabled = true;
+    _settings.structureCore.visibleEnabled = false;
     _settings.structureCore.infraredEnabled = false;
     _settings.structureCore.accelerometerEnabled = false;
     _settings.structureCore.gyroscopeEnabled = false;
+    _settings.structureCore.infraredMode = ST::StructureCoreInfraredMode::BothCameras;
     _settings.structureCore.demosaicMethod = ST::StructureCoreDemosaicMethod::EdgeAware;
     _settings.structureCore.depthResolution = ST::StructureCoreDepthResolution::SXGA;
     _settings.structureCore.imuUpdateRate = ST::StructureCoreIMUUpdateRate::AccelAndGyro_200Hz;
@@ -130,6 +131,7 @@ bool StructureCamera::lastVisibleFrame(uint8_t *out)
     if (!frame.isValid())
         return false;
 
+    // printf("visible width=%d height=%d\n", frame.width(), frame.height());
     memcpy(out, frame.rgbData(), sizeof(uint8_t) * frame.rgbSize());
     return true;
 }
@@ -140,7 +142,19 @@ bool StructureCamera::lastDepthFrame(float *out)
     if (!frame.isValid())
         return false;
     
+    // printf("depth width=%d height=%d\n", frame.width(), frame.height());
     memcpy(out, frame.depthInMillimeters(), sizeof(float) * frame.width() * frame.height());
+    return true;
+}
+
+bool StructureCamera::lastInfraredFrame(uint16_t *out)
+{
+    auto frame = _delegate.lastInfraredFrame();
+    if (!frame.isValid())
+        return false;
+    
+    // printf("infrared width=%d height=%d\n", frame.width(), frame.height());
+    memcpy(out, frame.data(), sizeof(uint16_t) * frame.width() * frame.height());
     return true;
 }
 
@@ -224,6 +238,12 @@ bool lastVisibleFrame(uint8_t *out)
 {
     auto camera = &StructureCamera::getInstance();
     return camera->lastVisibleFrame(out);
+}
+
+bool lastInfraredFrame(uint16_t *out)
+{
+    auto camera = &StructureCamera::getInstance();
+    return camera->lastInfraredFrame(out);
 }
 
 void setVisibleExposure(float seconds)
@@ -344,4 +364,40 @@ bool LIB_API getGammaCorrection()
 {
     auto camera = &StructureCamera::getInstance();
     return camera->settings().structureCore.visibleApplyGammaCorrection;
+}
+
+void LIB_API setVisibleEnabled(bool value)
+{
+    auto camera = &StructureCamera::getInstance();
+    camera->settings().structureCore.visibleEnabled = value;
+}
+
+bool LIB_API getVisibleEnabled()
+{
+    auto camera = &StructureCamera::getInstance();
+    return camera->settings().structureCore.visibleEnabled;
+}
+
+void LIB_API setInfraredEnabled(bool value)
+{
+    auto camera = &StructureCamera::getInstance();
+    camera->settings().structureCore.infraredEnabled = value;
+}
+
+bool LIB_API getInfraredEnabled()
+{
+    auto camera = &StructureCamera::getInstance();
+    return camera->settings().structureCore.infraredEnabled;
+}
+
+void LIB_API setInfraredMode(int value)
+{
+    auto camera = &StructureCamera::getInstance();
+    camera->settings().structureCore.infraredMode = (ST::StructureCoreInfraredMode)value;
+}
+
+int LIB_API getInfraredMode()
+{
+    auto camera = &StructureCamera::getInstance();
+    return (int)camera->settings().structureCore.infraredMode;
 }

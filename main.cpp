@@ -10,6 +10,7 @@ extern "C" {
     void LIB_API stopCamera();
     bool LIB_API lastDepthFrame(float *out);
     bool LIB_API lastVisibleFrame(uint8_t *out);
+    bool LIB_API lastInfraredFrame(uint16_t *out);
 
     void LIB_API setVisibleExposure(float seconds);
     float LIB_API getVisibleExposure();
@@ -64,11 +65,25 @@ extern "C" {
 
     void LIB_API setGammaCorrection(bool value);
     bool LIB_API getGammaCorrection();
+
+    void LIB_API setVisibleEnabled(bool value);
+    bool LIB_API getVisibleEnabled();
+
+    void LIB_API setInfraredEnabled(bool value);
+    bool LIB_API getInfraredEnabled();
+
+    extern const LIB_API int SC_INFRARED_MODE_LEFT;
+    extern const LIB_API int SC_INFRARED_MODE_RIGHT;
+    extern const LIB_API int SC_INFRARED_MODE_RIGHTLEFT;
+    void LIB_API setInfraredMode(int value);
+    int LIB_API getInfraredMode();
 }
 
 void main()
 {
-    setDepthResolution(2);
+    setDepthResolution(1);
+    setInfraredMode(SC_INFRARED_MODE_LEFT);
+    setInfraredEnabled(true);
     bool ret = startCamera();
     if (!ret)
     {
@@ -77,14 +92,21 @@ void main()
     }
     printf("Successed to initialize capture session!\n");
 
+    uint16_t * infrared = new uint16_t[1280*960*2];
     float * depth = new float[1280*960];
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (lastInfraredFrame(infrared)) {
+            // printf("%d", infrared[0]);
+        }
+
         if (lastDepthFrame(depth)) {
-            printf("%f", depth[0]);
+            // printf("%d", infrared[0]);
         }
     }
 
     delete [] depth;
+
+    delete [] infrared;
 }
